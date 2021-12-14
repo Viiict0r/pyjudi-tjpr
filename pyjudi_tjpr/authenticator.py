@@ -5,16 +5,17 @@ import onetimepass as otp
 import re
 import requests
 
+
 class Authenticator:
     def __init__(self, username: str, password: str, twofactor_secret: str) -> None:
         """Cria uma sessão logada no projudi-tjpr
 
         username : str
             Nome de usuário / cpf ou cnpj
-        
+
         password : str
             Senha de acesso
-        
+
         twofactor_secret : str
             Código secreto do Google Authenticator
             Ex: ABCDE1FGHIJKLMNOPQ2RS3TUVXWYZA4B
@@ -26,6 +27,8 @@ class Authenticator:
 
         self.__base_url = 'https://projudi.tjpr.jus.br'
         self.__home_url = 'https://projudi.tjpr.jus.br/projudi/home.do'
+
+        self.html_final = ''
 
     def get_logged_session(self) -> Session:
         """Retorna uma sessão válida no
@@ -43,12 +46,14 @@ class Authenticator:
         request_home = crawler_session.get(url=self.__home_url)
 
         # Get _tj token to make login
-        request_home_html = BeautifulSoup(str(request_home.text), features='html.parser')
+        request_home_html = BeautifulSoup(
+            str(request_home.text), features='html.parser')
 
         access_elements = request_home_html.select('ul[class="acessos"]')[0]
 
         # Find auth url with _tj token
-        path_tj = re.compile('(\/projudi\/autenticacao.do?.*_tj=.*\w)').search(str(access_elements))
+        path_tj = re.compile(
+            '(\/projudi\/autenticacao.do?.*_tj=.*\w)').search(str(access_elements))
 
         if not path_tj:
             raise Exception('Não foi possível encontrar o path de login')
@@ -59,9 +64,11 @@ class Authenticator:
         request_login = crawler_session.get(url=f'{self.__base_url}{path_tj}')
 
         # Get form action url
-        request_login_html = BeautifulSoup(str(request_login.text), features='html.parser')
-        request_login_form = request_login_html.find('form', { 'id': 'kc-form-login' })
-    
+        request_login_html = BeautifulSoup(
+            str(request_login.text), features='html.parser')
+        request_login_form = request_login_html.find(
+            'form', {'id': 'kc-form-login'})
+
         session_url = request_login_form.get('action')
 
         # Make post form request
@@ -74,9 +81,11 @@ class Authenticator:
         )
 
         # Get 2fa form action url
-        request_2fa_html = BeautifulSoup(str(session_response.text), features='html.parser')
+        request_2fa_html = BeautifulSoup(
+            str(session_response.text), features='html.parser')
 
-        request_2fa_form = request_2fa_html.find('form', { 'id': 'kc-otp-login-form' })
+        request_2fa_form = request_2fa_html.find(
+            'form', {'id': 'kc-otp-login-form'})
 
         # Check if 2fa form exists
         if not request_2fa_form:
@@ -90,14 +99,18 @@ class Authenticator:
         # Make twofactor login
         final_response = crawler_session.post(
             url=session_2fa_url,
-            data={ 'otp': str(secret_code) }
+            data={'otp': str(secret_code)}
         )
 
         # Check if is logged
-        final_response_html = BeautifulSoup(str(final_response.text), features='html.parser')
+        final_response_html = BeautifulSoup(
+            str(final_response.text), features='html.parser')
 
-        if not final_response_html.find('iframe', attrs={ 'name': 'userMainFrame' }):
-            raise Exception('Falha ao realizar login 2fa', ' response: ', final_response_html)
+        self.html_final = final_response.text
+
+        if not final_response_html.find('iframe', attrs={'name': 'userMainFrame'}):
+            raise Exception('Falha ao realizar login 2fa',
+                            ' response: ', final_response_html)
 
         return crawler_session
 
@@ -108,3 +121,12 @@ class Authenticator:
             cookie_dict[cookie.name] = cookie.value
 
         return cookie_dict
+
+    def get_link_consulta_processo(self):
+        if self.html_final:
+            links = re.findall(
+                "\/processo\/buscaProcessosQualquerInstancia.do\?_tj=[a-z0-9A-Z]*",
+                self.html_final)
+            return "https://projudi.tjpr.jus.br/projudi" + links[0]
+        else:
+            raise Exception("Fazer login no projudi")
