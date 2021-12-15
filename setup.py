@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='pyjudi_tjpr',
-    version='1.0.0',
+    version='1.0.1',
     url='',
     license='MIT License',
     author='Viiict0r',
