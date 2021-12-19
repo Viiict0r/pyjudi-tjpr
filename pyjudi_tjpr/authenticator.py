@@ -130,3 +130,12 @@ class Authenticator:
             return "https://projudi.tjpr.jus.br/projudi" + links[0]
         else:
             raise Exception("Fazer login no projudi")
+
+    def get_link_assessores(self):
+        if self.html_final:
+            links = re.findall(
+                "\/projudi\/usuario\/advogado.do\?_tj=[a-z0-9]+",
+                self.html_final)
+            return "https://projudi.tjpr.jus.br" + links[0]
+        else:
+            raise Exception("Fazer login no projudi")
