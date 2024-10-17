@@ -27,6 +27,27 @@ session = projudi_auth.get_logged_session()
 cookies = projudi_auth.get_session_cookies(session)
 ```
 
+### Deploy
+Crie uma virtual env
+```bash
+python -m venv venv
+```
+
+Instale as dependências do projeto
+```bash
+pip install -r requirements.txt
+```
+
+Modifique a versão no arquivo `setup.py` e rode um:
+```bash
+python setup.py sdist
+```
+
+Faça upload no pypi
+```bash
+twine upload dist/*
+```
+
 ### License
 [MIT License](LICENSE)
 
